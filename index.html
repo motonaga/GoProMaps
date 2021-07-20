@@ -4,10 +4,7 @@
 
 <head>
 <meta charset="UTF-8">
-<title>Sample_GoogleMap</title>
-
-<script src="http://maps.google.com/maps/api/js?key=AIzaSyAq_4WtgcJ9z0bB3gYpmoZRrzI3yJCD2mM"></script>
-
+<title>GoProMap</title>
 <style>
 html { height: 100% }
 body { height: 100% }
@@ -18,15 +15,22 @@ body { height: 100% }
 <body>
 <div id="map"></div>
 
+<script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAq_4WtgcJ9z0bB3gYpmoZRrzI3yJCD2mM&callback=initMap&libraries=&v=weekly"
+      async
+></script>
 <script>
-var map = new google.maps.Map(
-    document.getElementById('map'),
-    {
-        center: google.maps.LatLng(35.674874, 139.521906),
-        zoom: 15,
-        mapTypeId: 'roadmap'
-    }
-);
+let map;
+function initMap() {
+    map = new google.maps.Map(
+        document.getElementById('map'),
+        {
+            center: google.maps.LatLng(35.674874, 139.521906),
+            zoom: 15,
+            mapTypeId: 'roadmap'
+        }
+    );
+}
 </script>
 
 </body>
