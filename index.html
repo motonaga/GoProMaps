@@ -12,6 +12,7 @@ body {
     height: 100%;
     margin: 0;
     padding: 0;
+    overflow: hidden;
 }
 .container {
     height: 100%;
@@ -19,7 +20,7 @@ body {
     margin: 0;
     padding: 0;
 }
-@media (min-width: 481px) {
+@media (orientation: landscape) {
     .container {
         display: flex;
     }
@@ -33,7 +34,7 @@ body {
         width: 50%;
     }
 }
-@media (max-width: 480px) {
+@media (orientation: portrait) {
     .container {
         display: block;
     }
@@ -58,7 +59,7 @@ body {
     </div>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAq_4WtgcJ9z0bB3gYpmoZRrzI3yJCD2mM&callback=initMap&libraries=&v=weekly"
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAq_4WtgcJ9z0bB3gYpmoZRrzI3yJCD2mM&callback=initMap&&libraries=geometry&v=weekly"
       async
 ></script>
 <script>
@@ -74,6 +75,11 @@ body {
     let marker;
     let latlngs = [];
     let times = [];
+    let autoPan = true;
+    let controlUI;
+    let controlText;
+    const autoPanEnabledColor = "rgb(26, 115, 232)";
+    const autoPanDisabledColor = "rgb(128, 128, 128)";
 
     function onYouTubeIframeAPIReady() {
         player = new YT.Player('player', {
@@ -81,7 +87,8 @@ body {
             width: playerWidth,
             videoId: '4lUbhRZFFdo',
             playerVars: {
-                playsinline: 1
+                playsinline: 1,
+                autoplay: 1
             },
             events: {
             'onReady': onPlayerReady,
@@ -110,12 +117,53 @@ body {
         player.stopVideo();
     }
 
+    function setAutoPan(pan) {
+        autoPan = pan;
+        let color = autoPanDisabledColor;
+        if (autoPan) color = autoPanEnabledColor;
+        // controlText.style.color = color;
+        controlUI.style.backgroundColor = color;
+        controlUI.style.borderColor = color;
+    }
+
+    function PanControl(controlDiv, map) {
+        // Set CSS for the control border.
+        controlUI = document.createElement("div");
+        controlUI.style.backgroundColor = autoPanEnabledColor;
+        controlUI.style.border = "2px solid #fff";
+        controlUI.style.borderColor = autoPanEnabledColor;
+        controlUI.style.borderRadius = "3px";
+        controlUI.style.boxShadow = "0 2px 6px rgba(0,0,0,.3)";
+        controlUI.style.cursor = "pointer";
+        controlUI.style.marginTop = "8px";
+        controlUI.style.marginBottom = "22px";
+        controlUI.style.textAlign = "center";
+        controlUI.title = "Click to auto pan";
+        controlDiv.appendChild(controlUI);
+        // Set CSS for the control interior.
+        controlText = document.createElement("div");
+        controlText.style.color = "white";
+        controlText.style.fontFamily = "Roboto,Arial,sans-serif";
+        controlText.style.fontWeight = "bold";
+        controlText.style.fontSize = "16px";
+        controlText.style.lineHeight = "38px";
+        controlText.style.paddingLeft = "5px";
+        controlText.style.paddingRight = "5px";
+        controlText.innerHTML = "Auto Pan";
+        controlUI.appendChild(controlText);
+        // Setup the click event listeners: simply set the map to Chicago.
+        controlUI.addEventListener("click", () => {
+            setAutoPan(!autoPan); // 反転
+        });
+    }
+
     function initMap() {
         map = new google.maps.Map(
             document.getElementById('map'),
             {
                 center: new google.maps.LatLng(35.674874, 139.521906),
-                zoom: 15
+                zoom: 15,
+                clickableIcons: false
             }
         );
         map.data.loadGeoJson(
@@ -131,6 +179,19 @@ body {
         map.data.setStyle({
             strokeColor: 'red'
         });
+        map.data.addListener('click', function(event) {
+            if (event.feature.getGeometry().getType() === 'LineString') {
+                const latlng = event.latLng;
+                var closest = latlngs.reduce(function(prev, curr) {
+                    return (google.maps.geometry.spherical.computeDistanceBetween(latlng, curr) < google.maps.geometry.spherical.computeDistanceBetween(latlng, prev) ? curr : prev);
+                });
+                const index = latlngs.indexOf(closest);
+                const time = times[index];
+                player.seekTo(time, true);
+                player.playVideo();
+                setAutoPan(true);
+            }
+        });
 
         marker = new google.maps.Marker({
             position: map.getCenter(),
@@ -143,9 +204,10 @@ body {
         });
 
         map.addListener('drag', () => {
-            pauseVideo();
+            // pauseVideo();
+            setAutoPan(false);
         });
-        
+
         // map.addListener('idle', function () {
         //     setLocation();
         // });
@@ -160,6 +222,10 @@ body {
                 times = result;
             }
         });
+
+        const panControlDiv = document.createElement("div");
+        PanControl(panControlDiv, map);
+        map.controls[google.maps.ControlPosition.TOP_CENTER].push(panControlDiv);
     }
 
     window.onresize = () => {
@@ -167,7 +233,7 @@ body {
     }
 
     function setLocation() {
-        if (player === null || player.getDuration() === 0 || player.getPlayerState() !== 1) return;
+        if (player === null || player.getDuration() === 0) return;
         const currentTime = player.getCurrentTime();
         // const duration = player.getDuration();
         // const index = Math.floor(latlngs.length * (currentTime / duration));
@@ -180,8 +246,10 @@ body {
         }
         if (index === -1) return;
         const latlng = latlngs[index];
-        console.log(latlng.toJSON());
-        map.panTo(latlng);
+        // console.log(latlng.toJSON());
+        if (autoPan) {
+            map.panTo(latlng);
+        }
         if (marker != null) {
             marker.setPosition(latlng);
         }
