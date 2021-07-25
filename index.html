@@ -58,11 +58,18 @@ body {
         <div id="map"></div>
     </div>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
 <script
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAq_4WtgcJ9z0bB3gYpmoZRrzI3yJCD2mM&callback=initMap&&libraries=geometry&v=weekly"
       async
 ></script>
 <script>
+    $( "#movie" ).resizable({
+        resize: function(event, ui) { resize(); }
+    });
+
     let tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     let firstScriptTag = document.getElementsByTagName('script')[0];
@@ -88,7 +95,8 @@ body {
             videoId: '4lUbhRZFFdo',
             playerVars: {
                 playsinline: 1,
-                autoplay: 1
+                autoplay: 1,
+                rel: 0
             },
             events: {
             'onReady': onPlayerReady,
@@ -98,9 +106,11 @@ body {
     }
 
     function onPlayerReady(event) {
-        event.target.playVideo();
         resize();
-        event.target.setPlaybackRate(2);
+        const player = event.target;
+        player.mute();
+        player.playVideo();
+        player.setPlaybackRate(2);
     }
     
     var done = false;
@@ -256,13 +266,32 @@ body {
     }
 
     function resize() {
-        var playerDiv = document.getElementById('movie');
-        var width = playerDiv.offsetWidth;
-        // offsetHeight
-        var height = playerHeight * (width / playerWidth);
+        const playerDiv = document.getElementById('movie');
+        let width;
+        let height;
+        const mapDiv = document.getElementById('map');
+        if (window.matchMedia('(orientation: landscape)').matches) {
+            // landscape
+            width = playerDiv.offsetWidth;
+            height = playerHeight * (width / playerWidth);
+            const offsetWidth = document.body.offsetWidth - width;
+            $('#map').css('width', offsetWidth + 'px');
+            $('#map').css('height', '');
+        } else {
+            // portrait
+            height = playerDiv.offsetHeight;
+            width = playerWidth * (height / playerHeight);
+            const clientWidth = document.body.clientWidth;
+            if (width > clientWidth) width = clientWidth;
+            const offsetHeight = document.body.offsetHeight - height;
+            $('#map').css('height', offsetHeight + 'px');
+            $('#map').css('width', '');
+        }
         if (player !== null) {
             player.setSize(width, height);
         }
+        
+        google.maps.event.trigger(map, "resize");
     }
 </script>
 
