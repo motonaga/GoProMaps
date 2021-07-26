@@ -13,12 +13,25 @@ body {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    font-family: sans-serif;
 }
 .container {
     height: 100%;
     width: 100%;
     margin: 0;
     padding: 0;
+}
+#slope {
+    display: none;
+    width: 5em;
+    height: 1.5em;
+    position: absolute;
+    bottom: 40px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    font-weight: bold;
+    text-align: right;
 }
 @media (orientation: landscape) {
     .container {
@@ -54,6 +67,7 @@ body {
     <div class="container">
         <div id="movie">
             <div id="player"></div>
+            <div id="slope"></div>
         </div>
         <div id="map"></div>
     </div>
@@ -67,7 +81,7 @@ body {
 ></script>
 <script>
     $( "#movie" ).resizable({
-        resize: function(event, ui) { resize(); }
+        resize: (event, ui) => { resize(); }
     });
 
     let tag = document.createElement('script');
@@ -80,6 +94,7 @@ body {
     const playerWidth = '640';
     let map;
     let marker;
+    let coordinates;
     let latlngs = [];
     let times = [];
     let autoPan = true;
@@ -92,7 +107,7 @@ body {
         player = new YT.Player('player', {
             height: playerHeight,
             width: playerWidth,
-            videoId: '4lUbhRZFFdo',
+            videoId: 'trTUyb01gxA',
             playerVars: {
                 playsinline: 1,
                 autoplay: 1,
@@ -179,11 +194,11 @@ body {
             }
         );
         map.data.loadGeoJson(
-            'featureCollection.json',
+            'featureCollection.json?20210727',
             null,
             (features) =>  {
                 const feature = features[0];
-                feature.getGeometry().forEachLatLng(function(latlng) {
+                feature.getGeometry().forEachLatLng((latlng) => {
                     latlngs.push(latlng);
                 });
             }
@@ -191,10 +206,10 @@ body {
         map.data.setStyle({
             strokeColor: 'red'
         });
-        map.data.addListener('click', function(event) {
+        map.data.addListener('click', (event) => {
             if (event.feature.getGeometry().getType() === 'LineString') {
                 const latlng = event.latLng;
-                var closest = latlngs.reduce(function(prev, curr) {
+                var closest = latlngs.reduce((prev, curr) => {
                     return (google.maps.geometry.spherical.computeDistanceBetween(latlng, curr) < google.maps.geometry.spherical.computeDistanceBetween(latlng, prev) ? curr : prev);
                 });
                 const index = latlngs.indexOf(closest);
@@ -229,10 +244,21 @@ body {
         }, 1000);
 
         $.ajax({
-            url: "time.json",
+            url: "time.json?20210727",
             dataType: "json",
-            success: function( result ) {
+            success: (result) => {
                 times = result;
+            }
+        });
+
+        $.ajax({
+            url: "featureCollection.json?20210727",
+            dataType: "json",
+            success: (result) => {
+                const featureCollection = result;
+                const feature = featureCollection['features'][0];
+                const geometry = feature['geometry'];
+                coordinates = geometry['coordinates'];
             }
         });
 
@@ -248,8 +274,6 @@ body {
     function setLocation() {
         if (player === null || player.getDuration() === 0) return;
         const currentTime = player.getCurrentTime();
-        // const duration = player.getDuration();
-        // const index = Math.floor(latlngs.length * (currentTime / duration));
         let intSec = Math.floor(currentTime);
         location.hash = '#' + intSec;
         let index = times.indexOf(intSec);
@@ -266,6 +290,15 @@ body {
         }
         if (marker != null) {
             marker.setPosition(latlng);
+        }
+        const currentCoordinate = coordinates[index];
+        const nextCoordinate = coordinates[index + 1];
+        if (nextCoordinate != null) {
+            const nextLatLng = new google.maps.LatLng(nextCoordinate[1], nextCoordinate[0]);
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(latlng, nextLatLng);
+            const heightDiff = nextCoordinate[2] - currentCoordinate[2];
+            const slope = (heightDiff / distance) * 100;
+            document.getElementById('slope').textContent = slope.toFixed(2) + '%';
         }
     }
 
