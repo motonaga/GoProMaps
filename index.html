@@ -141,8 +141,7 @@ body {
         resize: (event, ui) => { resize(); }
     });
     $('#copybutton').on('click', () => {
-        const currentTime = player.getCurrentTime();
-        const intSec = Math.floor(currentTime);
+        const intSec = getIntSec();
         const hash = '#' + intSec;
         history.replaceState(null, document.title, hash);
         const url = location.href.split("#")[0] + hash;
@@ -285,6 +284,8 @@ body {
                 player.seekTo(time, true);
                 player.playVideo();
                 setAutoPan(true);
+                const hash = '#' + time;
+                history.replaceState(null, document.title, hash);
             }
         });
 
@@ -339,10 +340,14 @@ body {
         resize();
     }
 
+    function getIntSec() {
+        const currentTime = player.getCurrentTime();
+        return Math.floor(currentTime);
+    }
+
     function setLocation() {
         if (player === null || player.getDuration() === 0) return;
-        const currentTime = player.getCurrentTime();
-        let intSec = Math.floor(currentTime);
+        let intSec = getIntSec();
         // location.hash = '#' + intSec;
         // const hash = '#' + intSec;
         // location.replace(hash);
