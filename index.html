@@ -6,6 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
 <title>GoProMap</title>
+<link type="text/css" rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined">
 <style>
 html { height: 100%; }
 body { 
@@ -214,10 +215,15 @@ body {
     function setAutoPan(pan) {
         autoPan = pan;
         let color = autoPanDisabledColor;
-        if (autoPan) color = autoPanEnabledColor;
+        let text = 'update_disabled';
+        if (autoPan) {
+            color = autoPanEnabledColor;
+            text = 'update';
+        }
         // controlText.style.color = color;
         controlUI.style.backgroundColor = color;
         controlUI.style.borderColor = color;
+        controlText.textContent = text;
     }
 
     function PanControl(controlDiv, map) {
@@ -232,18 +238,19 @@ body {
         controlUI.style.marginTop = "8px";
         controlUI.style.marginBottom = "22px";
         controlUI.style.textAlign = "center";
-        controlUI.title = "Click to auto pan";
+        controlUI.title = "Pan to current time";
         controlDiv.appendChild(controlUI);
         // Set CSS for the control interior.
         controlText = document.createElement("div");
+        controlText.className = 'material-icons-outlined';
         controlText.style.color = "white";
-        controlText.style.fontFamily = "Roboto,Arial,sans-serif";
+        // controlText.style.fontFamily = "Roboto,Arial,sans-serif";
         controlText.style.fontWeight = "bold";
-        controlText.style.fontSize = "16px";
+        controlText.style.fontSize = "30px";
         controlText.style.lineHeight = "38px";
         controlText.style.paddingLeft = "5px";
         controlText.style.paddingRight = "5px";
-        controlText.innerHTML = "Auto Pan";
+        controlText.textContent = 'update';
         controlUI.appendChild(controlText);
         // Setup the click event listeners: simply set the map to Chicago.
         controlUI.addEventListener("click", () => {
@@ -256,7 +263,7 @@ body {
             document.getElementById('map'),
             {
                 center: new google.maps.LatLng(35.674874, 139.521906),
-                zoom: 15,
+                zoom: 14,
                 clickableIcons: false
             }
         );
@@ -346,7 +353,7 @@ body {
     }
 
     function setLocation() {
-        if (player === null || player.getDuration() === 0) return;
+        if (player === null || player.getPlayerState() === -1 || player.getDuration() === 0) return;
         let intSec = getIntSec();
         // location.hash = '#' + intSec;
         // const hash = '#' + intSec;
